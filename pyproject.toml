@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "framecraft"
+version = "1.0.0"
+description = "Execution tracing built on Python's frame APIs: sys.settrace, PEP 669 sys.monitoring, sys.setprofile and sampling profilers, plus call graphs, flame graphs and an HTML report."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "framecraft" }]
+keywords = [
+    "tracing", "profiling", "debugging", "frames", "stack", "sys.settrace",
+    "PEP 669", "sys.monitoring", "flame graph", "call graph", "coverage",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Debuggers",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: System :: Monitoring",
+]
+# Zero runtime dependencies, on purpose: a tracer that pulls in a dependency
+# tree is a tracer that cannot be dropped into a broken environment to debug it.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-cov", "ruff>=0.5", "mypy>=1.8"]
+graphviz = ["pydot>=2.0"]  # only if you want Python-side DOT rendering
+
+[project.scripts]
+fc-trace = "framecraft.cli.main:main"
+fc-demo = "framecraft.cli.main:main"
+
+[project.urls]
+Documentation = "https://github.com/example/framecraft/tree/main/docs"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q --strict-markers"
+filterwarnings = ["error::RuntimeWarning"]
+markers = ["slow: tests that intentionally burn wall-clock time"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests", "examples"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F", "W",    # pycodestyle / pyflakes
+    "I",              # import order
+    "UP",             # pyupgrade
+    "B",              # bugbear
+    "C4",             # comprehensions
+    "PERF",           # perflint
+    "RUF",            # ruff-specific
+    # D2xx/D4xx (docstring *shape*) but NOT D1xx (docstring *presence*).
+    # Every public name in src/ is documented; requiring a docstring on every
+    # test method and example helper is noise that trains people to ignore the
+    # linter, which is worse than not having one.
+    "D2", "D4",
+]
+
+# Deliberate, with reasons.  Everything here is a judgement call, not a
+# workaround for a bug.
+ignore = [
+    "D203",            # conflicts with D211
+    "D213",            # conflicts with D212
+    "D400",            # a one-word summary without a period is fine
+    "D401",            # imperative mood; several docstrings start "Returns ..."
+    "E501",            # line length is handled by the formatter
+    "B008",            # function call in a default arg
+    "RUF012",          # mutable class attrs are intentional here
+    # __all__ is grouped by meaning (kind constants, then classes, then
+    # functions) rather than sorted alphabetically.  Alphabetical order in a
+    # 49-name export list makes it harder to find the one thing you want, and
+    # the grouping is the documentation.
+    "RUF022",
+    "PERF401",         # explicit loops read better in a teaching codebase
+    # Sinks own the lifetime of the file they were handed.  A context manager
+    # would close the caller's stream, which is worse than the lint.
+    "SIM115",
+    # Tracer is an ABC whose abstract methods are private on purpose; see the
+    # class docstring for why @abstractmethod would be worse.
+    "B024",
+    "SIM103",
+    "SIM117",          # nested with is clearer when the scopes differ
+    "SIM102",          # nested if is used deliberately to show both arms
+    "RUF005",          # list concatenation is clearer than unpacking here
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.isort]
+known-first-party = ["framecraft"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+no_implicit_optional = true
+check_untyped_defs = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+# The tracer deliberately calls untyped C-level APIs (sys.monitoring,
+# frame.f_locals).  These are annotated as Any at the boundary.
+warn_return_any = false

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Traces and reports produced by running the examples and the CLI.
+# They are outputs, not sources, and several are megabytes.
+*.jsonl
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+flame.svg
+*-flame.svg
+*.html
+!docs/**/*.html
+
+# Environments
+.venv/
+venv/
